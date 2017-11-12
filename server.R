@@ -37,7 +37,7 @@ shinyServer(function(input, output, session) {
                                      unlist %>% unique
                                  
                                  updateCheckboxGroupInput(session,inputId = 'factors',
-                                                          choices = factors,selected=factors)
+                                                          choices = factors,selected=factors[!factors %in% 'block'])
                                  show('factors')
                                  show('brainRegion')
                                  show('cellTypes')
@@ -48,17 +48,13 @@ shinyServer(function(input, output, session) {
             })}
     })
     
-    output$studyText = reactive({
-        vals$metadata
-    })
-    
     observe({
         updateCheckboxGroupInput(session,inputId= 'cellTypes',
                                  choices = names(mouseMarkerGenes[[input$brainRegion]]),
                                  selected= names(mouseMarkerGenes[[input$brainRegion]]))
     })
     
-    output$mgpPlot = reactive({
+    output$mgpPlot = renderPlot({
         if(!is.null(vals$expression) & !is.null(input$factors)){
             markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
             
@@ -101,9 +97,8 @@ shinyServer(function(input, output, session) {
             
             toPlot = estimates$estimates %>% melt
             names(toPlot) = c('mgp','cellType')
-            
+            # browser
             toPlot = data.frame(toPlot,groups = estimates$groups[[1]])
-            browser()
             p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
                 facet_wrap(~cellType) + 
                 ogbox::geom_ogboxvio() + 

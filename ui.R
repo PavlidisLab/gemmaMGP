@@ -38,7 +38,6 @@ shinyUI(fluidPage(
             
             # Show a plot of the generated distribution
             mainPanel(
-                verbatimTextOutput('studyText'),
                 plotOutput('mgpPlot')
             )
         )

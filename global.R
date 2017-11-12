@@ -8,6 +8,7 @@ library(homologene)
 library(reshape2)
 library(ggplot2)
 data("mouseMarkerGenes")
+data("mouseRegionHierarchy")
 
 
 mem_median = memoise(median)
