@@ -13,7 +13,24 @@ data("mouseRegionHierarchy")
 
 mem_median = memoise(median)
 
-gemmaPrep = function(expression, meta){
+gemmaPrep = function(study){
+    
+    if(exists('session')){
+        setProgress(0, detail ="Downloading expression data")
+    }
+    
+    expression = datasetInfo(study,request= 'data',
+                                  IdColnames=TRUE,
+                                  memoised = TRUE)
+    if(exists('session')){
+        setProgress(5, detail ="Compiling metadata")
+    }
+    meta = compileMetadata(study,memoised = TRUE)
+    
+    if(exists('session')){
+        setProgress(7, detail ="Filtering expression data")
+    }
+    
     list[gene,exp] = expression %>% sepExpr()
     # some samples have outliers. they are NaNs in the entire row. remove them
     outlier = exp %>% apply(2,function(y){all(is.nan(y))})
@@ -40,7 +57,7 @@ gemmaPrep = function(expression, meta){
     
     
     
-    return(expression)
+    return(list(meta,expression))
 }
 
 mem_gemmaPrep = memoise(gemmaPrep)

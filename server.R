@@ -12,8 +12,14 @@ library(shiny)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
     vals = reactiveValues(expression = NULL,
-                          study = NULL)
+                          study = NULL,
+                          query = NULL)
     
+    
+    observe({
+        vals$querry = parseQueryString(session$clientData$url_search)
+        print(vals$querry)
+    })
     
     observe({
         if(input$submit >0){
@@ -23,11 +29,8 @@ shinyServer(function(input, output, session) {
                                  vals$expression = datasetInfo(input$study,request= 'data',
                                                                IdColnames=TRUE,
                                                                memoised = TRUE)
-                                 setProgress(5, detail ="Compiling metadata")
-                                 vals$metadata = compileMetadata(input$study,memoised = TRUE)
-                                 setProgress(7, detail ="Filtering expression data")
                                  
-                                 vals$expression = mem_gemmaPrep(vals$expression,vals$metadata) # might grow to be huge in prolonged use keep it for testing purposes only
+                                 list[vals$metadata, vals$expression] = mem_gemmaPrep(input$study)
                                  
                                  setProgress(9, detail ="Compiling metadata")
                                  
