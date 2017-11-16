@@ -13,7 +13,8 @@ library(shiny)
 shinyServer(function(input, output, session) {
     vals = reactiveValues(expression = NULL,
                           study = NULL,
-                          query = NULL)
+                          query = NULL,
+                          qualityTable = NULL)
     
     
     observe({
@@ -55,10 +56,12 @@ shinyServer(function(input, output, session) {
         updateCheckboxGroupInput(session,inputId= 'cellTypes',
                                  choices = names(mouseMarkerGenes[[input$brainRegion]]),
                                  selected= names(mouseMarkerGenes[[input$brainRegion]]))
+        print('update checkbox')
     })
     
     output$mgpPlot = renderPlot({
         if(!is.null(vals$expression) & !is.null(input$factors)){
+            print('make plot')
             markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
             
             species = vals$metadata$taxon %>% unique
@@ -68,7 +71,7 @@ shinyServer(function(input, output, session) {
             
             if(speciesID != 10090){
                 geneTransform = function(x){
-                    homologene(x,inTax = 10090, outTax  =speciesID)[[speciesID %>% as.character]]
+                    homologene(x,inTax = 10090, outTax = speciesID)[[speciesID %>% as.character]]
                 }
             } else {
                 geneTransform = NULL
@@ -97,6 +100,12 @@ shinyServer(function(input, output, session) {
             # })
             
             estimates$estimates %<>% lapply(scale01)
+            vals$qualityTable = data.frame(removedMarkerRatio = estimates$removedMarkerRatios,
+                                           varianceExplained = estimates$trimmedPCAs %>% 
+                                               sapply(function(x){
+                                                   x %>% summary %$% importance %>% {.[2,1]}
+                                               }),stringsAsFactors = FALSE)
+            
             
             toPlot = estimates$estimates %>% melt
             names(toPlot) = c('mgp','cellType')
@@ -104,12 +113,16 @@ shinyServer(function(input, output, session) {
             toPlot = data.frame(toPlot,groups = estimates$groups[[1]])
             p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
                 facet_wrap(~cellType) + 
-                ogbox::geom_ogboxvio() + 
+                ogbox::geom_ogboxvio() + geom_jitter() + 
                 theme(axis.text.x = element_text(angle = 90, size = 10))
             
             return(p)
     
         }
+    })
+    
+    output$qualityTable = renderDataTable({
+        vals$qualityTable
     })
 
 
