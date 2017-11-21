@@ -11,8 +11,9 @@ library(DT)
 data("mouseMarkerGenes")
 data("mouseRegionHierarchy")
 
+fc <- cache_filesystem(".cache")
 
-mem_median = memoise(median)
+mem_median = memoise(median,cache = fc)
 
 gemmaPrep = function(study){
     
@@ -61,7 +62,7 @@ gemmaPrep = function(study){
     return(list(meta,expression))
 }
 
-mem_gemmaPrep = memoise(gemmaPrep)
+mem_gemmaPrep = memoise(gemmaPrep, cache = fc)
 
 
 
@@ -94,3 +95,5 @@ getCategoryAnnotations = function(data,
     
     return(relevantAnnots)
 }
+
+mem_mgpEstimate = memoise(mgpEstimate, cache = fc)

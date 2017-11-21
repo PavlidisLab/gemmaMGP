@@ -13,8 +13,7 @@ library(shiny)
 shinyServer(function(input, output, session) {
     vals = reactiveValues(expression = NULL,
                           study = NULL,
-                          query = NULL,
-                          qualityTable = NULL)
+                          query = NULL)
     
     
     observe({
@@ -27,10 +26,7 @@ shinyServer(function(input, output, session) {
             isolate({
                 withProgress(message = 'Importing expression data',value = 0,
                              min=0,max = 10, expr = {
-                                 vals$expression = datasetInfo(input$study,request= 'data',
-                                                               IdColnames=TRUE,
-                                                               memoised = TRUE)
-                                 
+
                                  list[vals$metadata, vals$expression] = mem_gemmaPrep(input$study)
                                  
                                  setProgress(9, detail ="Compiling metadata")
@@ -59,15 +55,14 @@ shinyServer(function(input, output, session) {
         print('update checkbox')
     })
     
-    output$mgpPlot = renderPlot({
+    estimates = reactive({
         if(!is.null(vals$expression) & !is.null(input$factors)){
-            print('make plot')
             markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
             
             species = vals$metadata$taxon %>% unique
             
             taxonData = taxonInfo(species,memoised = TRUE)
-            speciesID = taxonData$`Homo sapiens`$ncbiId
+            speciesID = taxonData[[1]]$ncbiId
             
             if(speciesID != 10090){
                 geneTransform = function(x){
@@ -88,29 +83,26 @@ shinyServer(function(input, output, session) {
                                            x%>% unlist %>% sort %>% paste(collapse='|')
                                        })
             
-            estimates = mgpEstimate(exprData = vals$expression,
+            estimates = mem_mgpEstimate(exprData = vals$expression,
                                     genes = markers,
                                     geneColName = "GeneSymbol",
                                     geneTransform = geneTransform,
                                     groups = groups)
-            
-            # estimates %<>% lapply(function(x){
-            #     x = x[!names(x) %in% c('Microglia_activation',
-            #                           'Microglia_deactivation')]
-            # })
-            
             estimates$estimates %<>% lapply(scale01)
-            vals$qualityTable = data.frame(removedMarkerRatio = estimates$removedMarkerRatios,
-                                           varianceExplained = estimates$trimmedPCAs %>% 
-                                               sapply(function(x){
-                                                   x %>% summary %$% importance %>% {.[2,1]}
-                                               }),stringsAsFactors = FALSE)
             
-            
-            toPlot = estimates$estimates %>% melt
+            return(estimates)
+        } else {
+            return(NULL)
+        }
+    })
+    
+    output$mgpPlot = renderPlot({
+        if(!is.null(vals$expression) & !is.null(input$factors)){
+            print('make plot')
+            toPlot = estimates()$estimates %>% melt
             names(toPlot) = c('mgp','cellType')
             # browser
-            toPlot = data.frame(toPlot,groups = estimates$groups[[1]])
+            toPlot = data.frame(toPlot,groups = estimates()$groups[[1]])
             p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
                 facet_wrap(~cellType) + 
                 ogbox::geom_ogboxvio() + geom_jitter() + 
@@ -122,7 +114,11 @@ shinyServer(function(input, output, session) {
     })
     
     output$qualityTable = renderDataTable({
-        vals$qualityTable
+        data.frame(removedMarkerRatio = estimates()$removedMarkerRatios,
+                   varianceExplained = estimates()$trimmedPCAs %>% 
+                       sapply(function(x){
+                           x %>% summary %$% importance %>% {.[2,1]}
+                       }),stringsAsFactors = FALSE)
     })
 
 
