@@ -9,6 +9,8 @@ library(reshape2)
 library(ggplot2)
 library(DT)
 library(magrittr)
+library(viridis)
+library(cowplot)
 data("mouseMarkerGenes")
 data("mouseRegionHierarchy")
 
