@@ -8,6 +8,7 @@ library(homologene)
 library(reshape2)
 library(ggplot2)
 library(DT)
+library(magrittr)
 data("mouseMarkerGenes")
 data("mouseRegionHierarchy")
 

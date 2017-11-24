@@ -19,6 +19,7 @@ shinyUI(fluidPage(
                 textInput(inputId = 'study',label ="Study ID/Name",value = 'GSE7621'),
                 actionButton(inputId = 'submit',label = 'Submit'),
                 hidden(
+                    checkboxInput(inputId = 'abbreviate',label = 'Abbreviate Factors?', value = FALSE),
                     checkboxGroupInput(inputId = 'factors',label = 'Pick factors'),
                     selectInput(inputId = 'brainRegion',
                                 label = 'Pick brain region',

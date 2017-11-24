@@ -41,6 +41,7 @@ shinyServer(function(input, output, session) {
                                  show('factors')
                                  show('brainRegion')
                                  show('cellTypes')
+                                 show('abbreviate')
                                  setProgress(10, detail ="Compiling metadata")
                                  
                              })
@@ -56,44 +57,56 @@ shinyServer(function(input, output, session) {
     })
     
     estimates = reactive({
-        if(!is.null(vals$expression) & !is.null(input$factors)){
-            markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
-            
-            species = vals$metadata$taxon %>% unique
-            
-            taxonData = taxonInfo(species,memoised = TRUE)
-            speciesID = taxonData[[1]]$ncbiId
-            
-            if(speciesID != 10090){
-                geneTransform = function(x){
-                    homologene(x,inTax = 10090, outTax = speciesID)[[speciesID %>% as.character]]
+        vals$expression
+        input$factors
+        input$cellTypes
+        isolate({
+            if(!is.null(vals$expression) & !is.null(input$factors)){
+                markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
+                
+                species = vals$metadata$taxon %>% unique
+                
+                taxonData = taxonInfo(species,memoised = TRUE)
+                speciesID = taxonData[[1]]$ncbiId
+                
+                if(speciesID != 10090){
+                    geneTransform = function(x){
+                        homologene(x,inTax = 10090, outTax = speciesID)[[speciesID %>% as.character]]
+                    }
+                } else {
+                    geneTransform = NULL
                 }
+                
+                
+                groups =
+                    getCategoryAnnotations(data = vals$metadata,
+                                           category = input$factors,
+                                           categoryColumn = 'sampleAnnotBroadCategory',
+                                           annotationColumns = 'sampleAnnotation',
+                                           split = '\\|',
+                                           merge=FALSE) %>% sapply(function(x){
+                                               x%>% unlist %>% sort %>% paste(collapse='|')
+                                           })
+                
+                estimates = mem_mgpEstimate(exprData = vals$expression,
+                                            genes = markers,
+                                            geneColName = "GeneSymbol",
+                                            geneTransform = geneTransform,
+                                            groups = groups)
+                estimates$estimates %<>% lapply(scale01)
+                
+                
+                keep = estimates$estimates %>% is.na() %>% not
+                
+                estimates %<>% lapply(function(x){
+                    x[keep]
+                })
+                
+                return(estimates)
             } else {
-                geneTransform = NULL
+                return(NULL)
             }
-            
-            
-            groups =
-                getCategoryAnnotations(data = vals$metadata,
-                                       category = input$factors,
-                                       categoryColumn = 'sampleAnnotBroadCategory',
-                                       annotationColumns = 'sampleAnnotation',
-                                       split = '\\|',
-                                       merge=FALSE) %>% sapply(function(x){
-                                           x%>% unlist %>% sort %>% paste(collapse='|')
-                                       })
-            
-            estimates = mem_mgpEstimate(exprData = vals$expression,
-                                    genes = markers,
-                                    geneColName = "GeneSymbol",
-                                    geneTransform = geneTransform,
-                                    groups = groups)
-            estimates$estimates %<>% lapply(scale01)
-            
-            return(estimates)
-        } else {
-            return(NULL)
-        }
+        })
     })
     
     output$mgpPlot = renderPlot({
@@ -103,10 +116,15 @@ shinyServer(function(input, output, session) {
             names(toPlot) = c('mgp','cellType')
             # browser
             toPlot = data.frame(toPlot,groups = estimates()$groups[[1]])
+            textSize = 11
+            if(input$abbreviate){
+                toPlot$groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
+                textSize = 16
+            }
             p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
                 facet_wrap(~cellType) + 
                 ogbox::geom_ogboxvio() + geom_jitter() + 
-                theme(axis.text.x = element_text(angle = 90, size = 10))
+                theme(axis.text.x = element_text(angle = 90, size = textSize))
             
             return(p)
     
