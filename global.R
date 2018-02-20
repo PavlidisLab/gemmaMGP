@@ -7,13 +7,16 @@ library(markerGeneProfile)
 library(homologene)
 library(reshape2)
 library(ggplot2)
+library(shiny)
 library(DT)
 library(magrittr)
-library(shiny)
+library(viridis)
+library(cowplot)
 
 data("mouseMarkerGenes", package = 'markerGeneProfile')
 data('mouseMarkerGenesNCBI',package = 'markerGeneProfile')
 data("mouseRegionHierarchy", package='markerGeneProfile')
+
 
 fc <- cache_filesystem(".cache")
 

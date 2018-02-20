@@ -37,12 +37,10 @@ shinyServer(function(input, output, session) {
                                  
                                  updateCheckboxGroupInput(session,inputId = 'factors',
                                                           choices = factors,selected=factors[!factors %in% 'block'])
-                                 show('factors')
-                                 show('brainRegion')
-                                 show('cellTypes')
-                                 show('abbreviate')
+
+                                 show('hiddenThings')
                                  setProgress(10, detail ="DONE!")
-                                 
+
                              })
                 
             })}
@@ -56,9 +54,10 @@ shinyServer(function(input, output, session) {
     })
     
     estimates = reactive({
-        vals$expression
-        input$factors
-        input$cellTypes
+        input$mgpCalc
+        # vals$expression
+        # input$factors
+        # input$cellTypes
         isolate({
             if(!is.null(vals$expression) & !is.null(input$factors)){
                 markers = mouseMarkerGenes[[input$brainRegion]][input$cellTypes]
@@ -87,6 +86,10 @@ shinyServer(function(input, output, session) {
                                                x%>% unlist %>% sort %>% paste(collapse='|')
                                            })
                 
+                if(input$abbreviate){
+                    groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
+                }
+                
                 estimates = mem_mgpEstimate(exprData = vals$expression,
                                             genes = markers,
                                             geneColName = "GeneSymbol",
@@ -109,25 +112,28 @@ shinyServer(function(input, output, session) {
     })
     
     output$mgpPlot = renderPlot({
-        if(!is.null(vals$expression) & !is.null(input$factors)){
-            print('make plot')
-            toPlot = estimates()$estimates %>% melt
-            names(toPlot) = c('mgp','cellType')
-            # browser
-            toPlot = data.frame(toPlot,groups = estimates()$groups[[1]])
-            textSize = 11
-            if(input$abbreviate){
-                toPlot$groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
-                textSize = 16
+        estimates()
+        isolate({
+            if(!is.null(vals$expression) & !is.null(input$factors) & !is.null(estimates())){
+                print('make plot')
+                toPlot = estimates()$estimates %>% melt
+                names(toPlot) = c('mgp','cellType')
+                # browser
+                toPlot = data.frame(toPlot,groups = estimates()$groups[[1]])
+                textSize = 11
+                # if(input$abbreviate){
+                #     toPlot$groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
+                #     textSize = 16
+                # }
+                p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
+                    facet_wrap(~cellType) + 
+                    ogbox::geom_ogboxvio() + geom_jitter() + 
+                    theme(axis.text.x = element_text(angle = 90, size = textSize))
+                
+                return(p)
+                
             }
-            p = toPlot %>% ggplot(aes(x = groups,y = mgp)) + 
-                facet_wrap(~cellType) + 
-                ogbox::geom_ogboxvio() + geom_jitter() + 
-                theme(axis.text.x = element_text(angle = 90, size = textSize))
-            
-            return(p)
-    
-        }
+        })
     })
     
     output$qualityTable = renderDataTable({
@@ -135,8 +141,54 @@ shinyServer(function(input, output, session) {
                    varianceExplained = estimates()$trimmedPCAs %>% 
                        sapply(function(x){
                            x %>% summary %$% importance %>% {.[2,1]}
-                       }),stringsAsFactors = FALSE) %>% 
-            DT::datatable(rownames = TRUE)
+                       }),stringsAsFactors = FALSE) %>%datatable(selection = 'single')
+    })
+    
+    output$groupInfo = renderDataTable({
+        if(!is.null(estimates()) & !is.null(input$qualityTable_rows_selected)){
+            groups = unique(estimates()$groups[[1]])
+            cellType = input$qualityTable_rows_selected
+            groupInfo = groups %>% lapply(function(x){
+                group = estimates()$groups[[cellType]] %in% x
+                meanEstimate = estimates()$estimates[[cellType]][group] %>% mean
+                meanMarkerExpression = estimates()$meanUsedMarkerExpression[[cellType]][group] %>% mean
+                meanScaledMarkerExpression = estimates()$simpleScaledEstimation[[cellType]][group] %>% mean
+                return(c(meanEstimate = meanEstimate,
+                         meanMarkerExpression = meanMarkerExpression,
+                         meanScaledMarkerExpression = meanScaledMarkerExpression))
+            }) %>% as.data.frame
+            names(groupInfo) = groups
+            return(groupInfo %>% t)
+        }
+    })
+    
+    output$groupComparison = renderPlot({
+        if(!is.null(estimates()) & !is.null(input$qualityTable_rows_selected)){
+            groups = unique(estimates()$groups[[1]])
+            cellType = input$qualityTable_rows_selected
+            pairwise = combn(groups,2)
+            groupComparisons = seq_len(ncol(pairwise)) %>% sapply(function(k){
+                
+                pair = pairwise[,k]
+                group1 = estimates()$groups[[cellType]] %in% pair[1]
+                group2 = estimates()$groups[[cellType]] %in% pair[2]
+                
+                pVal = wilcox.test(estimates()$estimates[[cellType]][group1],
+                                   estimates()$estimates[[cellType]][group2]) %$% p.value
+                
+            })
+            sigMark = signifMarker(groupComparisons)
+            
+            toPlot = data.frame(g1 = pairwise[1,],
+                                g2 = pairwise[2,],
+                                pVal = groupComparisons,
+                                sigMark = sigMark)
+            
+            ggplot(toPlot, aes(x = g1,y = g2)) + xlab('') + ylab('') +
+                geom_tile(aes(fill = pVal))+ cowplot::theme_cowplot() +
+                geom_text(aes(label = sigMark),size = 18) + scale_fill_viridis(limits = c(0,1),direction = -1)
+            
+        }
     })
 
 

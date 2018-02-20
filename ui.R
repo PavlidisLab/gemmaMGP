@@ -11,13 +11,14 @@
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
     useShinyjs(),
-        titlePanel("GemmaMGP"),
+    titlePanel("GemmaMGP"),
     
     sidebarLayout(
-            sidebarPanel(
-                textInput(inputId = 'study',label ="Study ID/Name",value = 'GSE7621'),
-                actionButton(inputId = 'submit',label = 'Submit'),
-                hidden(
+        sidebarPanel(
+            textInput(inputId = 'study',label ="Study ID/Name",value = 'GSE7621'),
+            actionButton(inputId = 'submit',label = 'Submit'),
+            hidden(
+                div(id = 'hiddenThings',
                     checkboxInput(inputId = 'abbreviate',label = 'Abbreviate Factors?', value = FALSE),
                     checkboxGroupInput(inputId = 'factors',label = 'Pick factors'),
                     selectInput(inputId = 'brainRegion',
@@ -32,16 +33,20 @@ shinyUI(fluidPage(
                     checkboxGroupInput(inputId = 'cellTypes',
                                        label = 'Cell Types',
                                        choices = names(mouseMarkerGenes$Cortex),
-                                       selected = names(mouseMarkerGenes$Cortex))
+                                       selected = names(mouseMarkerGenes$Cortex)),
+                    actionButton(inputId='mgpCalc',label = 'Calculate MGPs')
                 )
-            ),
-            
-            # Show a plot of the generated distribution
-            mainPanel(
-                plotOutput('mgpPlot'),
-                DT::dataTableOutput('qualityTable')
             )
+        ),
+        
+        # Show a plot of the generated distribution
+        mainPanel(
+            plotOutput('mgpPlot'),
+            dataTableOutput('qualityTable'),
+            dataTableOutput('groupInfo'),
+            plotOutput('groupComparison')
         )
-    ))
-    
+    )
+))
+
 
