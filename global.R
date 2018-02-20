@@ -9,8 +9,11 @@ library(reshape2)
 library(ggplot2)
 library(DT)
 library(magrittr)
-data("mouseMarkerGenes")
-data("mouseRegionHierarchy")
+library(shiny)
+
+data("mouseMarkerGenes", package = 'markerGeneProfile')
+data('mouseMarkerGenesNCBI',package = 'markerGeneProfile')
+data("mouseRegionHierarchy", package='markerGeneProfile')
 
 fc <- cache_filesystem(".cache")
 
@@ -19,16 +22,32 @@ mem_median = memoise(median,cache = fc)
 gemmaPrep = function(study){
     
     if(exists('session')){
-        setProgress(0, detail ="Downloading expression data")
+        setProgress(0, detail ="Compiling metadata")
     }
     
-    expression = datasetInfo(study,request= 'data',
-                                  IdColnames=TRUE,
-                                  memoised = TRUE)
-    if(exists('session')){
-        setProgress(5, detail ="Compiling metadata")
-    }
     meta = compileMetadata(study,memoised = TRUE)
+    species = meta$taxon %>% unique
+    
+    neededGenes = mouseMarkerGenesNCBI %>% unlist %>% unique
+    
+    taxonData = taxonInfo(species,memoised = TRUE)
+    speciesID = taxonData[[1]]$ncbiId
+    
+    if(speciesID != 10090){
+        neededGenes = homologene(neededGenes,inTax = 10090, outTax = speciesID)[[paste0(speciesID,'_ID')]]
+    }
+    
+    # expression = datasetInfo(study,request= 'data',
+    #                               IdColnames=TRUE,
+    #                               memoised = TRUE)
+    if(exists('session')){
+        setProgress(4, detail ="Getting expression data")
+    }
+
+    # expression = datasetInfo(study,request= 'data',
+    #                          IdColnames=TRUE,
+    #                          memoised = TRUE)
+    expression = gemmaAPI::expressionSubset(study,neededGenes,consolidate = 'pickvar')
     
     if(exists('session')){
         setProgress(7, detail ="Filtering expression data")
@@ -43,8 +62,7 @@ gemmaPrep = function(study){
     exp = exp[!outlier][keep,]
     # note that there can be a difference between samples in metadata and
     # samples in filtered exp now
-    
-    exp = exp[,match(meta$id,colnames(exp))]
+    exp = exp[,match(meta$sampleName,colnames(exp))]
     
     
     expression = cbind(gene,exp)

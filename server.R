@@ -7,7 +7,6 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -29,7 +28,7 @@ shinyServer(function(input, output, session) {
 
                                  list[vals$metadata, vals$expression] = mem_gemmaPrep(input$study)
                                  
-                                 setProgress(9, detail ="Compiling metadata")
+                                 setProgress(9, detail ="Setting up UI")
                                  
                                  factors = 
                                      vals$metadata$sampleAnnotBroadCategory %>%
@@ -42,7 +41,7 @@ shinyServer(function(input, output, session) {
                                  show('brainRegion')
                                  show('cellTypes')
                                  show('abbreviate')
-                                 setProgress(10, detail ="Compiling metadata")
+                                 setProgress(10, detail ="DONE!")
                                  
                              })
                 
@@ -136,7 +135,8 @@ shinyServer(function(input, output, session) {
                    varianceExplained = estimates()$trimmedPCAs %>% 
                        sapply(function(x){
                            x %>% summary %$% importance %>% {.[2,1]}
-                       }),stringsAsFactors = FALSE)
+                       }),stringsAsFactors = FALSE) %>% 
+            DT::datatable(rownames = TRUE)
     })
 
 
