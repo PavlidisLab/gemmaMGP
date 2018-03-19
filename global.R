@@ -23,9 +23,8 @@ mouseMarkerGenes = mouseMarkerGenesCombined
 mouseMarkerGenesNCBI = mouseMarkerGenesCombinedNCBI
 
 
-fc <- cache_filesystem(".cache")
 
-mem_median = memoise(median,cache = fc)
+mem_median = memoise(median)
 
 gemmaPrep = function(study){
     if(exists('session')){
@@ -88,7 +87,7 @@ gemmaPrep = function(study){
     return(list(meta,expression))
 }
 
-mem_gemmaPrep = memoise(gemmaPrep, cache = fc)
+mem_gemmaPrep = memoise(gemmaPrep)
 
 
 
@@ -122,4 +121,4 @@ getCategoryAnnotations = function(data,
     return(relevantAnnots)
 }
 
-mem_mgpEstimate = memoise(mgpEstimate, cache = fc)
+mem_mgpEstimate = memoise(mgpEstimate)
