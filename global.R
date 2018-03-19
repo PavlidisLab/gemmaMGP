@@ -12,10 +12,15 @@ library(DT)
 library(magrittr)
 library(viridis)
 library(cowplot)
-
 data("mouseMarkerGenes", package = 'markerGeneProfile')
 data('mouseMarkerGenesNCBI',package = 'markerGeneProfile')
+
+data("mouseMarkerGenesCombined", package = 'markerGeneProfile')
+data('mouseMarkerGenesCombinedNCBI',package = 'markerGeneProfile')
+
 data("mouseRegionHierarchy", package='markerGeneProfile')
+mouseMarkerGenes = mouseMarkerGenesCombined
+mouseMarkerGenesNCBI = mouseMarkerGenesCombinedNCBI
 
 
 fc <- cache_filesystem(".cache")
@@ -23,7 +28,6 @@ fc <- cache_filesystem(".cache")
 mem_median = memoise(median,cache = fc)
 
 gemmaPrep = function(study){
-    
     if(exists('session')){
         setProgress(0, detail ="Compiling metadata")
     }
@@ -32,7 +36,7 @@ gemmaPrep = function(study){
     species = meta$taxon %>% unique
     
     neededGenes = mouseMarkerGenesNCBI %>% unlist %>% unique
-    
+    neededGenes = neededGenes[!grepl('\\|',neededGenes)]
     taxonData = taxonInfo(species,memoised = TRUE)
     speciesID = taxonData[[1]]$ncbiId
     

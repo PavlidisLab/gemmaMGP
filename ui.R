@@ -19,6 +19,7 @@ shinyUI(fluidPage(
             actionButton(inputId = 'submit',label = 'Submit'),
             hidden(
                 div(id = 'hiddenThings',
+                    textInput(inputId = 'filter',label = 'Filter regex',value =''),
                     checkboxInput(inputId = 'abbreviate',label = 'Abbreviate Factors?', value = FALSE),
                     checkboxGroupInput(inputId = 'factors',label = 'Pick factors'),
                     selectInput(inputId = 'brainRegion',

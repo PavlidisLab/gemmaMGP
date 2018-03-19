@@ -90,7 +90,14 @@ shinyServer(function(input, output, session) {
                     groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
                 }
                 
-                estimates = mem_mgpEstimate(exprData = vals$expression,
+                keep = grepl(pattern = input$filter, vals$metadata$sampleAnnotation)
+                groups = groups[keep]
+                list[gene,exp] = sepExpr(vals$expression)
+                exp = exp[,keep]
+                expression = cbind(gene,exp)
+                
+                
+                estimates = mem_mgpEstimate(exprData = expression,
                                             genes = markers,
                                             geneColName = "GeneSymbol",
                                             geneTransform = geneTransform,
@@ -179,8 +186,8 @@ shinyServer(function(input, output, session) {
             })
             sigMark = signifMarker(groupComparisons)
             
-            toPlot = data.frame(g1 = pairwise[1,],
-                                g2 = pairwise[2,],
+            toPlot = data.frame(g1 = pairwise[1,] %>% factor(levels = groups),
+                                g2 = pairwise[2,] %>% factor(levels = groups),
                                 pVal = groupComparisons,
                                 sigMark = sigMark)
             
