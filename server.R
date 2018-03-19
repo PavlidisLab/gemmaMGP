@@ -88,6 +88,8 @@ shinyServer(function(input, output, session) {
                 
                 if(input$abbreviate){
                     groups %<>% str_replace('\\|',' | ')  %>% abbreviate()
+                } else{
+                    groups %<>% str_split('\\|') %>%  map_chr(paste,collapse = '\n')
                 }
                 
                 keep = grepl(pattern = input$filter, vals$metadata$sampleAnnotation)

@@ -12,6 +12,7 @@ library(DT)
 library(magrittr)
 library(viridis)
 library(cowplot)
+library(purrr)
 data("mouseMarkerGenes", package = 'markerGeneProfile')
 data('mouseMarkerGenesNCBI',package = 'markerGeneProfile')
 
