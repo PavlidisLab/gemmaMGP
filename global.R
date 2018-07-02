@@ -59,7 +59,6 @@ gemmaPrep = function(study){
     if(exists('session')){
         setProgress(7, detail ="Filtering expression data")
     }
-    
     list[gene,exp] = expression %>% sepExpr()
     # some samples have outliers. they are NaNs in the entire row. remove them
     outlier = exp %>% apply(2,function(y){all(is.nan(y))})
@@ -69,7 +68,8 @@ gemmaPrep = function(study){
     exp = exp[!outlier][keep,]
     # note that there can be a difference between samples in metadata and
     # samples in filtered exp now
-    exp = exp[,match(meta$sampleName,colnames(exp))]
+    exp = exp[,ogbox::trimNAs(match(meta$sampleName,colnames(exp)))]
+    meta = meta[match(colnames(exp),meta$sampleName),]
     
     
     expression = cbind(gene,exp)
